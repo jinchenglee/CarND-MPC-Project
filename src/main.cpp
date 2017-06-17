@@ -92,14 +92,20 @@ int main() {
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
 
+          std::cout << "px = " << px << ", py = " << py << ", psi = " << psi << ", v = " << v << std::endl;
+
+          double px_init = px;
+          double py_init = py;
+
           /*
           * TODO: Calculate steering angle and throttle using MPC.
           *
           * Both are in between [-1, 1].
           *
           */
-          double steer_value;
-          double throttle_value;
+          double steer_value = 0.0;
+          double throttle_value = 0.0;
+          //{steer_value, throttle_value} = mpc.Solve()
 
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
@@ -107,25 +113,56 @@ int main() {
           msgJson["steering_angle"] = steer_value;
           msgJson["throttle"] = throttle_value;
 
-          //Display the MPC predicted trajectory 
+
+
+
+          // -------------------
+          //Display the MPC predicted trajectory
+          // -------------------
           vector<double> mpc_x_vals;
           vector<double> mpc_y_vals;
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Green line
 
+
           msgJson["mpc_x"] = mpc_x_vals;
           msgJson["mpc_y"] = mpc_y_vals;
 
+
+
+          // -------------------
           //Display the waypoints/reference line
+          // -------------------
           vector<double> next_x_vals;
           vector<double> next_y_vals;
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
 
+
+          // Resize the empty vector appropriately
+          next_x_vals.resize(ptsx.size());
+          next_y_vals.resize(ptsy.size());
+
+          for (unsigned int i=0;i<ptsx.size(); i++) {
+            double delta_x = ptsx[i] - px_init;
+            double delta_y = ptsy[i] - py_init;
+
+            double c = cos(psi);
+            double s = sin(psi);
+
+            // Transform world coordinates into vehicle coordinates
+            // [x,y]' = [cos(psi) sin(psi); -sin(psi) cos(psi)] * [delta_x, delta_y]'
+            next_x_vals[i] = c*delta_x + s*delta_y;
+            next_y_vals[i] = c*delta_y - s*delta_x;
+
+            //std::cout << "next_x = " << next_x_vals[i] << ", next_y = " << next_y_vals[i] << std::endl;
+          }
+
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
+
 
 
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
