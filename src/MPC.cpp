@@ -22,7 +22,7 @@ double dt = 0.1;
 const double Lf = 2.67;
 
 // Reference speed
-double ref_v = 15;
+double ref_v = 5;
 
 // The solver takes all the state variables and actuator
 // variables in a singular vector. Thus, we should establish
@@ -56,21 +56,21 @@ class FG_eval {
     // ---------------------
 
     // cost based on reference state
-    for (int t=0; t<N; t++) {
-        fg[0] += CppAD::pow(vars[cte_start+t], 2);
-        fg[0] += CppAD::pow(vars[epsi_start+t], 2);
+    for (unsigned int t=0; t<N; t++) {
+        fg[0] += 2000*CppAD::pow(vars[cte_start+t], 2);
+        fg[0] += 2000*CppAD::pow(vars[epsi_start+t], 2);
         fg[0] += CppAD::pow(vars[v_start+t] - ref_v, 2);
       }
 
     // cost to penalize big actuations
-    for (int t=0; t<N-1; t++) {
-        fg[0] += 300*CppAD::pow(vars[delta_start + t], 2);
+    for (unsigned int t=0; t<N-1; t++) {
+        fg[0] += CppAD::pow(vars[delta_start + t], 2);
         fg[0] += CppAD::pow(vars[a_start + t], 2);
       }
 
     // cost to smooth actuation changes
-    for (int t=0; t<N-2; t++) {
-        fg[0] += 300*CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
+    for (unsigned int t=0; t<N-2; t++) {
+        fg[0] += CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
         fg[0] += CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
       }
 
@@ -91,7 +91,7 @@ class FG_eval {
     fg[1 + epsi_start] = vars[epsi_start];
 
     // The rest of the constraints
-    for (int t = 1; t < N; t++) {
+    for (unsigned int t = 1; t < N; t++) {
       // The state at time t+1 .
       AD<double> x1 = vars[x_start + t];
       AD<double> y1 = vars[y_start + t];
@@ -112,8 +112,15 @@ class FG_eval {
       AD<double> delta0 = vars[delta_start + t - 1];
       AD<double> a0 = vars[a_start + t - 1];
 
-      AD<double> f0 = coeffs[0] + coeffs[1] * x0;
-      AD<double> psides0 = CppAD::atan(coeffs[1]);
+      AD<double> f0 = coeffs[0] + coeffs[1] * x0 + 
+              coeffs[2] * CppAD::pow(x0, 2) + 
+              coeffs[3] * CppAD::pow(x0, 3);
+      // Jacobian
+      AD<double> f0_jacobian = coeffs[1] + 
+              2 * coeffs[2] * x0  + 
+              3 * coeffs[3] * CppAD::pow(x0, 2);
+      // Hessian
+      AD<double> f0_hessian = CppAD::atan(f0_jacobian);
 
       // Here's `x` to get you started.
       // The idea here is to constraint this value to be 0.
@@ -132,7 +139,7 @@ class FG_eval {
       fg[1 + cte_start + t] =
           cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
       fg[1 + epsi_start + t] =
-          epsi1 - ((psi0 - psides0) + v0 * delta0 / Lf * dt);
+          epsi1 - ((psi0 - f0_hessian) + v0 * delta0 / Lf * dt);
     }
   }
 };
@@ -145,7 +152,6 @@ MPC::~MPC() {}
 
 vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   bool ok = true;
-  size_t i;
   typedef CPPAD_TESTVECTOR(double) Dvector;
 
   double x = state[0];
@@ -183,7 +189,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   Dvector vars_upperbound(n_vars);
   // Set all non-actuators upper and lowerlimits
   // to the max negative and positive values.
-  for (int i = 0; i < delta_start; i++) {
+  for (unsigned int i = 0; i < delta_start; i++) {
     vars_lowerbound[i] = -1.0e19;
     vars_upperbound[i] = 1.0e19;
   }
@@ -191,14 +197,14 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   // The upper and lower limits of delta are set to -25 and 25
   // degrees (values in radians).
   // NOTE: Feel free to change this to something else.
-  for (int i = delta_start; i < a_start; i++) {
+  for (unsigned int i = delta_start; i < a_start; i++) {
     vars_lowerbound[i] = -0.436332;
     vars_upperbound[i] = 0.436332;
   }
 
   // Acceleration/decceleration upper and lower limits.
   // NOTE: Feel free to change this to something else.
-  for (int i = a_start; i < n_vars; i++) {
+  for (unsigned int i = a_start; i < n_vars; i++) {
     vars_lowerbound[i] = -1.0;
     vars_upperbound[i] = 1.0;
   }
@@ -268,11 +274,11 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   // Save predicted trajectory for visualization
   mpc_x_vals.clear();
   mpc_y_vals.clear();
-  for (int i=0; i<N; i++) {
+  for (unsigned int i=0; i<N; i++) {
     mpc_x_vals.push_back(solution.x[x_start+i]);
     mpc_y_vals.push_back(solution.x[y_start+i]);
   }
-  std::cout << "solution.x = " << solution.x << std::endl;
+  //std::cout << "solution.x = " << solution.x << std::endl;
 
   // Return the first actuator values. The variables can be accessed with
   // `solution.x[i]`.

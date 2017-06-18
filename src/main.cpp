@@ -142,13 +142,12 @@ int main() {
           Eigen::VectorXd ptsx_eigen = Eigen::VectorXd::Map(next_x_vals.data(), next_x_vals.size());
           Eigen::VectorXd ptsy_eigen = Eigen::VectorXd::Map(next_y_vals.data(), next_y_vals.size());
           std::cout << "ptsx_eigen = " << ptsx_eigen << ", ptsy_eigen = " << ptsy_eigen << std::endl;
-          //auto coeffs = polyfit(ptsx_eigen, ptsy_eigen, 2);
-          auto coeffs = polyfit(ptsx_eigen, ptsy_eigen, 1);
+          auto coeffs = polyfit(ptsx_eigen, ptsy_eigen, 3);
 
           // cross track error 
-          double cte = polyeval(coeffs, 0) - 0;
+          //double cte = polyeval(coeffs, 0) - 0;
+          double cte = coeffs[0];
           // orientation error - arctan(f'(x))
-          //double epsi = psi - atan(2*coeffs[2]*px+coeffs[1]);
           double epsi = 0 - atan(coeffs[1]);
           std::cout << "cte = " << cte << ", epsi = " << epsi << std::endl;
 
@@ -162,11 +161,11 @@ int main() {
           steer_value = tmp_vars[0];
           throttle_value = tmp_vars[1];
 
-          std::cout << "steer_value = " << steer_value << ", throttle_value = " << throttle_value << std::endl;
+          std::cout << "steer_value = " << steer_value/deg2rad(25) << ", throttle_value = " << throttle_value << std::endl;
 
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
           // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
-          msgJson["steering_angle"] = steer_value/deg2rad(25);
+          msgJson["steering_angle"] = steer_value;
           msgJson["throttle"] = throttle_value;
 
 
@@ -202,7 +201,7 @@ int main() {
           //
           // NOTE: REMEMBER TO SET THIS TO 100 MILLISECONDS BEFORE
           // SUBMITTING.
-          this_thread::sleep_for(chrono::milliseconds(100));
+          //this_thread::sleep_for(chrono::milliseconds(100));
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
         }
       } else {
