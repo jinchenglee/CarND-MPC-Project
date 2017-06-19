@@ -5,37 +5,6 @@
 
 using CppAD::AD;
 
-// Set the timestep length and duration
-size_t N = 10;
-double dt = 0.1;
-
-// This value assumes the model presented in the classroom is used.
-//
-// It was obtained by measuring the radius formed by running the vehicle in the
-// simulator around in a circle with a constant steering angle and velocity on a
-// flat terrain.
-//
-// Lf was tuned until the the radius formed by the simulating the model
-// presented in the classroom matched the previous radius.
-//
-// This is the length from front to CoG that has a similar radius.
-const double Lf = 2.67;
-
-// Reference speed
-double ref_v = 95;
-
-// The solver takes all the state variables and actuator
-// variables in a singular vector. Thus, we should establish
-// when one variable starts and another ends to make our lifes easier.
-size_t x_start = 0;
-size_t y_start = x_start + N;
-size_t psi_start = y_start + N;
-size_t v_start = psi_start + N;
-size_t cte_start = v_start + N;
-size_t epsi_start = cte_start + N;
-size_t delta_start = epsi_start + N;
-size_t a_start = delta_start + N - 1;
-
 class FG_eval {
  public:
   // Fitted polynomial coefficients
@@ -64,13 +33,13 @@ class FG_eval {
 
     // cost to penalize big actuations
     for (unsigned int t=0; t<N-1; t++) {
-        fg[0] += CppAD::pow(vars[delta_start + t], 2);
+        fg[0] += 20*CppAD::pow(vars[delta_start + t], 2);
         fg[0] += CppAD::pow(vars[a_start + t], 2);
       }
 
     // cost to smooth actuation changes
     for (unsigned int t=0; t<N-2; t++) {
-        fg[0] += CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
+        fg[0] += 300*CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
         fg[0] += CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
       }
 
@@ -114,9 +83,13 @@ class FG_eval {
 
       AD<double> f0 = coeffs[0] + coeffs[1] * x0 + 
               coeffs[2] * CppAD::pow(x0, 2);
+              //coeffs[2] * CppAD::pow(x0, 2) + 
+              //coeffs[3] * CppAD::pow(x0, 3);
       // Jacobian
       AD<double> f0_jacobian = coeffs[1] + 
               2 * coeffs[2] * x0;
+              //2 * coeffs[2] * x0 + 
+              //3 * coeffs[3] * CppAD::pow(x0, 2);
       // Hessian
       AD<double> f0_hessian = CppAD::atan(f0_jacobian);
 

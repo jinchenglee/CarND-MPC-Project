@@ -91,6 +91,8 @@ int main() {
           double py = j[1]["y"];
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
+          double steer = j[1]["steering_angle"];
+          double throttle = j[1]["throttle"];
           //std::cout << "px = " << px << ", py = " << py << ", psi = " << psi << ", v = " << v << std::endl;
 
           json msgJson;
@@ -141,17 +143,31 @@ int main() {
           // 2nd order polynomial is good enough. 3rd order seems a bit more stable in curves.
           auto coeffs = polyfit(ptsx_eigen, ptsy_eigen, 2);
 
-          // cross track error 
+          // Initial cross track error 
           //double cte = polyeval(coeffs, 0) - 0;
           double cte = coeffs[0];
-          // orientation error - arctan(f'(x))
-          double epsi = 0 - atan(coeffs[1]);
+          // Initial orientation error - arctan(f'(x))
+          double epsi = - atan(coeffs[1]);
           std::cout << "cte = " << cte << ", epsi = " << epsi << std::endl;
 
           // State
           Eigen::VectorXd state(6);
-          // Transformed all into car coordinates, so x,y,psi are all zeroes.
-          state << 0, 0, 0, v, cte, epsi;
+
+          // Transformed all into car coordinates, so x,y,psi are all zeroes for init.
+          px = 0.0;
+          py = 0.0;
+          psi = 0.0;
+
+          // Account for 100ms delay - using kinematics model to predict the "init" state after latency
+          double latency = 0.1;
+          px += v*latency; // Follow current direction, thus only x coordinates will change. Y stays unchanged.
+          psi -= v*steer*latency/Lf;
+          cte += v*sin(epsi)*latency;
+          epsi -= v*steer*latency/Lf;
+          // V has to be put last as previous two need original value of v.
+          v += throttle*latency;
+
+          state << px, py, psi, v, cte, epsi;
 
           auto tmp_vars = mpc.Solve(state, coeffs);
           double steer_value = tmp_vars[0];
@@ -161,7 +177,11 @@ int main() {
 
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
           // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
-          msgJson["steering_angle"] = -steer_value/deg2rad(25);
+
+          // Not sure why when 100ms latency added, the normalized version of steering will cause
+          // vehicle woblling from side to side
+          //msgJson["steering_angle"] = -steer_value/deg2rad(25);
+          msgJson["steering_angle"] = -steer_value;
           msgJson["throttle"] = throttle_value;
 
 
@@ -197,7 +217,7 @@ int main() {
           //
           // NOTE: REMEMBER TO SET THIS TO 100 MILLISECONDS BEFORE
           // SUBMITTING.
-          //this_thread::sleep_for(chrono::milliseconds(100));
+          this_thread::sleep_for(chrono::milliseconds(100));
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
         }
       } else {
