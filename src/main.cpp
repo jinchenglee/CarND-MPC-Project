@@ -142,7 +142,7 @@ int main() {
           Eigen::VectorXd ptsx_eigen = Eigen::VectorXd::Map(next_x_vals.data(), next_x_vals.size());
           Eigen::VectorXd ptsy_eigen = Eigen::VectorXd::Map(next_y_vals.data(), next_y_vals.size());
           std::cout << "ptsx_eigen = " << ptsx_eigen << ", ptsy_eigen = " << ptsy_eigen << std::endl;
-          auto coeffs = polyfit(ptsx_eigen, ptsy_eigen, 3);
+          auto coeffs = polyfit(ptsx_eigen, ptsy_eigen, 2);
 
           // cross track error 
           //double cte = polyeval(coeffs, 0) - 0;

@@ -113,12 +113,10 @@ class FG_eval {
       AD<double> a0 = vars[a_start + t - 1];
 
       AD<double> f0 = coeffs[0] + coeffs[1] * x0 + 
-              coeffs[2] * CppAD::pow(x0, 2) + 
-              coeffs[3] * CppAD::pow(x0, 3);
+              coeffs[2] * CppAD::pow(x0, 2);
       // Jacobian
       AD<double> f0_jacobian = coeffs[1] + 
-              2 * coeffs[2] * x0  + 
-              3 * coeffs[3] * CppAD::pow(x0, 2);
+              2 * coeffs[2] * x0;
       // Hessian
       AD<double> f0_hessian = CppAD::atan(f0_jacobian);
 
