@@ -26,7 +26,11 @@ Here in this project, MPC converts a control problem into an optimization proble
 
 - Various weights were tried on different categories of cost function elements. Final choice is to only accept very small error in CTE and orientation error, and the change/delta in steering angle, as well as its change rate, should also be very very small to make this MPC controller work. (Details in code snippet below quoted)
 
-- Various N and dt values are tried. N = 30, 20, 10, with dt 
+- Various N and dt values are tried. N = 30, 20, 10, with dt options of 0.05s and 0.1s. 
+-- It turns out it doesn't make too much difference when dt=0.1s. The more points to calcuate, the slower the solver and since it is a continous iterative optimization, prediction into the future of N*dt = 1 second is good enough, thus N=10. 
+-- Dt = 0.05s seems problematic in shape curves at high speed. It turned over my vehicle when I set expected speed at 95 mph. Dt = 0.1s is a good balance. 
+
+- Speed expectation is set to as high as possible, 95 or 100 mph. 
 
 ## Vehicle Kinematics Model
 Below kinematics model is used:
