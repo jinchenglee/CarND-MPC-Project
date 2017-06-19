@@ -90,8 +90,7 @@ class FG_eval {
               2 * coeffs[2] * x0;
               //2 * coeffs[2] * x0 + 
               //3 * coeffs[3] * CppAD::pow(x0, 2);
-      // Hessian
-      AD<double> f0_hessian = CppAD::atan(f0_jacobian);
+      AD<double> f0_prime = CppAD::atan(f0_jacobian);
 
       // Here's `x` to get you started.
       // The idea here is to constraint this value to be 0.
@@ -110,7 +109,7 @@ class FG_eval {
       fg[1 + cte_start + t] =
           cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
       fg[1 + epsi_start + t] =
-          epsi1 - ((psi0 - f0_hessian) + v0 * delta0 / Lf * dt);
+          epsi1 - ((psi0 - f0_prime) + v0 * delta0 / Lf * dt);
     }
   }
 };
