@@ -91,11 +91,7 @@ int main() {
           double py = j[1]["y"];
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
-
-          std::cout << "px = " << px << ", py = " << py << ", psi = " << psi << ", v = " << v << std::endl;
-
-          double px_init = px;
-          double py_init = py;
+          //std::cout << "px = " << px << ", py = " << py << ", psi = " << psi << ", v = " << v << std::endl;
 
           json msgJson;
           // -------------------
@@ -112,8 +108,8 @@ int main() {
           next_y_vals.resize(ptsy.size());
 
           for (unsigned int i=0;i<ptsx.size(); i++) {
-            double delta_x = ptsx[i] - px_init;
-            double delta_y = ptsy[i] - py_init;
+            double delta_x = ptsx[i] - px;
+            double delta_y = ptsy[i] - py;
 
             double c = cos(psi);
             double s = sin(psi);
@@ -131,7 +127,7 @@ int main() {
 
 
           /*
-          * TODO: Calculate steering angle and throttle using MPC.
+          * Calculate steering angle and throttle using MPC.
           *
           * Both are in between [-1, 1].
           *
@@ -141,7 +137,8 @@ int main() {
           // convert std::vector to Eigen::VectorXd
           Eigen::VectorXd ptsx_eigen = Eigen::VectorXd::Map(next_x_vals.data(), next_x_vals.size());
           Eigen::VectorXd ptsy_eigen = Eigen::VectorXd::Map(next_y_vals.data(), next_y_vals.size());
-          std::cout << "ptsx_eigen = " << ptsx_eigen << ", ptsy_eigen = " << ptsy_eigen << std::endl;
+          //std::cout << "ptsx_eigen = " << ptsx_eigen << ", ptsy_eigen = " << ptsy_eigen << std::endl;
+          // 2nd order polynomial is good enough. 3rd order seems a bit more stable in curves.
           auto coeffs = polyfit(ptsx_eigen, ptsy_eigen, 2);
 
           // cross track error 
@@ -153,13 +150,12 @@ int main() {
 
           // State
           Eigen::VectorXd state(6);
+          // Transformed all into car coordinates, so x,y,psi are all zeroes.
           state << 0, 0, 0, v, cte, epsi;
 
-          double steer_value = 0.0;
-          double throttle_value = 0.0;
           auto tmp_vars = mpc.Solve(state, coeffs);
-          steer_value = tmp_vars[0];
-          throttle_value = tmp_vars[1];
+          double steer_value = tmp_vars[0];
+          double throttle_value = tmp_vars[1];
 
           std::cout << "steer_value = " << steer_value/deg2rad(25) << ", throttle_value = " << throttle_value << std::endl;
 
